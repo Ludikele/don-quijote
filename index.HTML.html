@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LudikEle &ndash; Investigaci&oacute;n Don Quijote</title>
+<style>
+  :root{
+    --maroon:#6e1423; --maroon-dark:#4a0d18; --maroon-light:#8a2035;
+    --gold:#d4a94a; --gold-light:#f0d9a0; --gold-dark:#a97f2c;
+    --cream:#fdf6ea; --ink:#2b2118; --ink-soft:#5b5347;
+    --ok:#3d7a3d; --ko:#a3372b;
+    --radius:16px;
+    --shadow:0 6px 18px rgba(74,13,24,.18);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Segoe UI',Verdana,Arial,sans-serif;
+    background:linear-gradient(160deg,#fdf6ea 0%,#f6e9d2 100%);
+    color:var(--ink); min-height:100vh;
+  }
+  .wrap{ max-width:760px; margin:0 auto; padding:14px 14px 90px 14px; }
+
+  /* ===== Header / logo ===== */
+  header.app-head{ display:flex; align-items:center; gap:12px; padding:10px 4px 16px 4px; }
+  .logo{ width:52px; height:52px; flex-shrink:0; filter:drop-shadow(0 2px 3px rgba(0,0,0,.25)); }
+  .brand h1{ margin:0; font-size:17px; color:var(--maroon); letter-spacing:.3px; }
+  .brand .tag{ font-size:11px; color:var(--ink-soft); }
+
+  /* ===== Progress stepper ===== */
+  .stepper{ display:flex; gap:4px; margin-bottom:16px; }
+  .stepper .dot{ flex:1; height:7px; border-radius:4px; background:#e4d4b6; transition:.3s; }
+  .stepper .dot.done{ background:linear-gradient(90deg,var(--maroon),var(--gold)); }
+  .stepper .dot.now{ background:var(--gold); box-shadow:0 0 0 2px var(--gold-light); }
+
+  /* ===== Screens ===== */
+  .screen{ display:none; animation:fadein .35s ease; }
+  .screen.active{ display:block; }
+  @keyframes fadein{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  .card{
+    background:#fff; border:1.5px solid #e6d6b3; border-radius:var(--radius);
+    padding:18px 18px 16px 18px; margin-bottom:14px; box-shadow:var(--shadow);
+  }
+  .card.badge-card{ border-left:6px solid var(--maroon); }
+
+  h2.title{ margin:0 0 4px 0; font-size:18px; color:var(--maroon); display:flex; align-items:center; gap:8px; }
+  h2.title .n{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:26px; height:26px; border-radius:50%; background:var(--maroon); color:#fff;
+    font-size:13px; font-weight:bold; flex-shrink:0;
+  }
+  .fr{ color:var(--ink-soft); font-style:italic; font-size:12.5px; }
+  p.lead{ margin:4px 0 12px 0; font-size:14px; }
+
+  .qr-box{
+    display:flex; gap:14px; align-items:center; background:var(--cream);
+    border:1.5px dashed var(--gold-dark); border-radius:12px; padding:10px 14px; margin:10px 0 16px 0;
+  }
+  .qr-box img{ width:88px; height:88px; border-radius:6px; background:#fff; padding:4px; border:1px solid #ddd; }
+  .qr-box .txt{ font-size:13px; }
+  .qr-box a{ color:var(--maroon); font-weight:600; word-break:break-all; }
+
+  .q-block{ margin:14px 0; }
+  .q-block .q-txt{ font-weight:600; font-size:14px; margin-bottom:2px; }
+  .opts{ display:flex; flex-direction:column; gap:6px; margin-top:8px; }
+  .opt-btn{
+    text-align:left; padding:9px 12px; border-radius:10px; border:1.5px solid #d9c9a3;
+    background:#fffdf7; cursor:pointer; font-size:13.5px; transition:.15s;
+  }
+  .opt-btn:hover{ border-color:var(--gold-dark); background:var(--gold-light); }
+  .opt-btn.correct{ background:#e4f3e4; border-color:var(--ok); color:#215021; font-weight:600; }
+  .opt-btn.wrong{ background:#fbe6e3; border-color:var(--ko); color:#7a2419; }
+  .opt-btn[disabled]{ cursor:default; }
+  .opt-btn:not(.correct):not(.wrong):hover{ }
+  .fb{ font-size:12.5px; margin-top:4px; font-weight:600; }
+  .fb.ok{ color:var(--ok); } .fb.ko{ color:var(--ko); }
+
+  .chk-list{ display:flex; flex-direction:column; gap:6px; margin-top:8px; }
+  .chk-list label{ display:flex; gap:8px; align-items:flex-start; font-size:13.5px; background:#fffdf7; border:1px solid #e6d6b3; border-radius:8px; padding:7px 10px; cursor:pointer;}
+  .chk-list input{ margin-top:2px; }
+
+  textarea, input[type=text]{
+    width:100%; border:1.5px solid #d9c9a3; border-radius:10px; padding:8px 10px;
+    font-family:inherit; font-size:13.5px; background:#fffdf7; resize:vertical;
+  }
+  textarea{ min-height:60px; }
+  input[type=text].inline{ width:auto; min-width:160px; display:inline-block; }
+
+  .fill-row{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:14px; margin:6px 0; }
+  .btn{
+    display:inline-flex; align-items:center; gap:6px; border:none; border-radius:22px;
+    padding:9px 18px; font-size:13.5px; font-weight:600; cursor:pointer;
+    background:linear-gradient(120deg,var(--maroon),var(--maroon-light)); color:#fff;
+    box-shadow:0 3px 8px rgba(110,20,35,.3);
+  }
+  .btn.gold{ background:linear-gradient(120deg,var(--gold-dark),var(--gold)); color:#3a2a0a; }
+  .btn.ghost{ background:#fff; color:var(--maroon); border:1.5px solid var(--maroon); box-shadow:none;}
+  .btn:disabled{ opacity:.45; cursor:default; }
+
+  .callout{ background:#eef2e4; border-left:4px solid #5b7a3b; border-radius:8px; padding:9px 12px; font-size:13px; margin:10px 0; }
+  .callout b{ color:#3d5323; }
+
+  table.match{ width:100%; border-collapse:collapse; font-size:13.5px; margin-top:8px;}
+  table.match td{ padding:5px 4px; vertical-align:middle; }
+  table.match select{ width:100%; padding:5px; border-radius:8px; border:1.5px solid #d9c9a3; background:#fffdf7; font-size:13px;}
+
+  .order-row{ display:flex; align-items:center; gap:8px; background:#fffdf7; border:1px solid #e6d6b3; border-radius:8px; padding:6px 10px; margin-bottom:6px; }
+  .order-row select{ width:56px; padding:4px; border-radius:6px; border:1.5px solid #d9c9a3; }
+
+  .info-facts{ display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
+  .info-facts .fact{ flex:1 1 220px; background:var(--cream); border:1px solid #e6d6b3; border-radius:10px; padding:8px 10px; font-size:12.8px; }
+  .info-facts .fact b{ color:var(--maroon); display:block; font-size:12px; margin-bottom:2px;}
+  .info-facts .fact .fr{ display:block; margin-top:2px; }
+
+  .fb-cell{ font-size:12px; white-space:nowrap; }
+
+  .cx-wrap{ overflow-x:auto; }
+  table.cross{ border-collapse:collapse; margin:10px auto; }
+  table.cross td{ width:30px; height:30px; text-align:center; padding:0; position:relative; }
+  td.cx-block{ background:transparent; }
+  td.cx-cell{ border:1.5px solid var(--maroon); background:#fffdf7; }
+  td.cx-cell input{ width:100%; height:100%; border:none; text-align:center; text-transform:uppercase; font-weight:700; font-size:14px; background:transparent; padding:0; }
+  td.cx-cell input.ok{ background:#e4f3e4; }
+  td.cx-cell input.ko{ background:#fbe6e3; }
+  .cx-num{ position:absolute; top:1px; left:2px; font-size:8px; color:var(--maroon); font-weight:700; }
+  .cross-clues{ font-size:12.5px; margin:8px 0 4px 18px; padding:0; }
+  .cross-clues li{ margin-bottom:4px; }
+
+  .cipher-legend{ display:grid; grid-template-columns:repeat(13,1fr); gap:2px; font-size:9.5px; text-align:center; margin:8px 0 14px 0; background:var(--cream); border:1px solid #e6d6b3; border-radius:8px; padding:6px; }
+  .cipher-legend div b{ display:block; color:var(--maroon); }
+  .cipher-item{ margin:12px 0; }
+  .cipher-code{ font-family:'Courier New',monospace; font-size:15px; letter-spacing:1px; background:var(--cream); border:1px dashed var(--gold-dark); border-radius:8px; padding:6px 10px; display:inline-block; margin-bottom:5px;}
+
+  .navbar{
+    position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1.5px solid #e6d6b3;
+    padding:9px 14px; display:flex; justify-content:space-between; align-items:center; gap:10px;
+    box-shadow:0 -4px 14px rgba(0,0,0,.08); z-index:20;
+  }
+  .navbar .step-label{ font-size:11.5px; color:var(--ink-soft); text-align:center; flex:1; }
+
+  .gear{
+    position:fixed; right:10px; bottom:64px; width:38px; height:38px; border-radius:50%;
+    background:var(--maroon); color:#fff; display:flex; align-items:center; justify-content:center;
+    font-size:16px; cursor:pointer; box-shadow:var(--shadow); z-index:21; border:none;
+  }
+  .modal-bg{ position:fixed; inset:0; background:rgba(43,33,24,.55); display:none; align-items:center; justify-content:center; z-index:30; padding:16px;}
+  .modal-bg.show{ display:flex; }
+  .modal{ background:#fff; border-radius:14px; padding:18px; max-width:420px; width:100%; max-height:80vh; overflow:auto; }
+  .modal h3{ margin-top:0; color:var(--maroon); }
+  .close-x{ float:right; background:none; border:none; font-size:18px; cursor:pointer; color:var(--ink-soft);}
+
+  .score-badge{ text-align:center; padding:16px; }
+  .score-badge .num{ font-size:40px; font-weight:800; color:var(--maroon); }
+  .score-badge .lab{ font-size:12.5px; color:var(--ink-soft); }
+
+  @media print{
+    .gear, .navbar, .stepper{ display:none !important; }
+    .screen{ display:block !important; page-break-after:always; }
+    body{ background:#fff; }
+  }
+  @media (max-width:480px){
+    .qr-box{ flex-direction:column; text-align:center; }
+    .brand h1{ font-size:15px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="app-head">
+    <svg class="logo" viewBox="0 0 100 100">
+      <defs>
+        <linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#8a2035"/><stop offset="1" stop-color="#d4a94a"/>
+        </linearGradient>
+      </defs>
+      <rect x="4" y="4" width="92" height="92" rx="20" fill="url(#lg1)"/>
+      <rect x="12" y="12" width="76" height="76" rx="14" fill="none" stroke="#fff" stroke-width="2" opacity=".35"/>
+      <path d="M22 22 h14 v14 h-14 z M64 22 h14 v14 h-14 z M22 64 h14 v14 h-14 z" fill="none" stroke="#fff" stroke-width="2" opacity=".3"/>
+      <circle cx="50" cy="42" r="13" fill="#fff"/>
+      <path d="M43 52 L57 52 L52 72 L48 72 Z" fill="#fff"/>
+    </svg>
+    <div class="brand">
+      <h1>LudikEle &ndash; Investigaci&oacute;n Don Quijote</h1>
+      <div class="tag">Espa&ntilde;ol &middot; 2<sup>de</sup> Bac Pro &nbsp;<span class="fr">(Espagnol – 2de Pro)</span></div>
+    </div>
+  </header>
+
+  <div class="stepper" id="stepper"></div>
+
+  <!-- ============ HOME ============ -->
+  <section class="screen active" id="screen-home">
+    <div class="card">
+      <h2 class="title">&iexcl;Bienvenido/a, investigador/a! <span class="fr">(Bienvenue, enquêteur·euse !)</span></h2>
+      <p class="lead">Vas a investigar una publicidad misteriosa... y vas a descubrir una obra muy famosa de la literatura espa&ntilde;ola. <span class="fr">(Tu vas enquêter sur une publicité mystérieuse... et découvrir une œuvre très célèbre de la littérature espagnole.)</span></p>
+      <div class="fill-row">
+        <label for="nombre-input"><b>Tu nombre</b> <span class="fr">(ton prénom)</span> :</label>
+        <input type="text" id="nombre-input" class="inline" placeholder="Escribe aqu&iacute;...">
+      </div>
+      <div class="info-facts">
+        <div class="fact"><b>&#128269; Pista 1</b>El an&uacute;ncio <span class="fr">(la pub)</span></div>
+        <div class="fact"><b>&#127775; Descubrimiento</b>El autor y el personaje <span class="fr">(l'auteur et le personnage)</span></div>
+        <div class="fact"><b>&#127916; Pista 2</b>El nuevo cortometraje <span class="fr">(le court métrage)</span></div>
+        <div class="fact"><b>&#127942; Bonus</b>Comparaci&oacute;n y juegos <span class="fr">(comparaison et jeux)</span></div>
+      </div>
+      <button class="btn" onclick="goTo('p1')">Empezar la investigaci&oacute;n &rarr;</button>
+    </div>
+  </section>
+
+  <!-- ============ PISTA 1 : ANUNCIO ============ -->
+  <section class="screen" id="screen-p1">
+    <div class="card badge-card">
+      <h2 class="title"><span class="n">1</span>Pista 1 &ndash; El an&uacute;ncio publicitario <span class="fr">(indice 1 – la pub)</span></h2>
+      <div class="qr-box">
+        <img src="data:image/png;base64,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" alt="QR anuncio">
+        <div class="txt">Escanea el c&oacute;digo o pulsa el enlace. M&iacute;ralo <u>dos veces</u>.<br>
+        <span class="fr">(Scanne le code ou clique. Regarde-la deux fois.)</span><br>
+        <a href="https://www.youtube.com/watch?v=CiZ09t1A6t4" target="_blank">youtube.com/watch?v=CiZ09t1A6t4</a></div>
+      </div>
+
+      <h3 style="color:var(--maroon); font-size:14.5px; margin-bottom:2px;">Comprensi&oacute;n global <span class="fr">(compréhension globale)</span></h3>
+      <div id="mcq-global"></div>
+
+      <h3 style="color:var(--maroon); font-size:14.5px; margin:14px 0 2px 0;">Comprensi&oacute;n fina <span class="fr">(compréhension détaillée)</span></h3>
+      <div id="mcq-fine"></div>
+
+      <div class="q-block">
+        <div class="q-txt">Completa el eslogan final: <span class="fr">(complète le slogan)</span></div>
+        <div class="fill-row">&laquo; Ver bien es <input type="text" id="fill-slogan" class="inline" style="min-width:110px" onchange="checkFill('fill-slogan','otra')"> historia &raquo; <span id="fb-fill-slogan" class="fb"></span></div>
+      </div>
+
+      <h3 style="color:var(--maroon); font-size:14.5px; margin:14px 0 2px 0;">&iquest;Por qu&eacute; funciona esta publicidad? <span class="fr">(pourquoi cette pub fonctionne-t-elle ?)</span></h3>
+      <div class="chk-list" id="chk-eficacia"></div>
+      <div class="q-block">
+        <div class="q-txt">Relaciona cada inicio de frase con su final: <span class="fr">(relie chaque début de phrase avec sa fin)</span></div>
+        <table class="match" id="efi-table"></table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="title" style="font-size:16px;">&#10068; La gran pregunta <span class="fr">(la grande question)</span></h2>
+      <p class="lead">En tu opini&oacute;n, &iquest;a qu&eacute; <b>obra literaria</b> y a qu&eacute; <b>autor</b> hace referencia este an&uacute;ncio?</p>
+      <div class="fill-row">
+        <input type="text" id="guess-input" placeholder="Escribe tu hip&oacute;tesis...">
+        <button class="btn gold" onclick="checkGuess()">Comprobar mi hip&oacute;tesis</button>
+      </div>
+      <div id="guess-feedback" style="margin-top:8px; font-weight:600;"></div>
+    </div>
+  </section>
+
+  <!-- ============ REVEAL ============ -->
+  <section class="screen" id="screen-reveal">
+    <div class="card badge-card">
+      <h2 class="title"><span class="n">&#9733;</span>&iexcl;Lo descubrimos juntos! <span class="fr">(On le découvre ensemble !)</span></h2>
+      <p class="lead">El an&uacute;ncio hace referencia a <b>&laquo;El ingenioso hidalgo don Quijote de la Mancha&raquo;</b>, escrito por <b>Miguel de Cervantes</b> en 1605.</p>
+    </div>
+
+    <div class="card">
+      <h2 class="title" style="font-size:16px;">&#128220; El autor: Miguel de Cervantes <span class="fr">(l'auteur)</span></h2>
+      <div class="qr-box">
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAXIAAAFyCAIAAABnRsZeAAAHmklEQVR4nO3cXapjtxpF0Xsu6UWalvalaWnHzmtBQJBoik/bHuO18E/ZPhM9LPTzPM//ADr/n34DwKeRFSAmK0BMVoCYrAAxWQFisgLEZAWIyQoQkxUgJitATFaAmKwAMVkBYrICxGQFiMkKEJMVICYrQOy3nQf/8fvv1fu4xJ9//bX41/X/d+qxa+tnXjv3/U69q53XXfu2v4U1pxUgJitATFaAmKwAMVkBYrICxGQFiMkKEJMVILa1sl07t2jc8caN5tQnOfW6U5/Gudf9vL+FNacVICYrQExWgJisADFZAWKyAsRkBYjJChCTFSB2cGW7duc9qWuft9D9vG9h6v+7443fwprTChCTFSAmK0BMVoCYrAAxWQFisgLEZAWIyQoQG1vZvtHUgnPqbtdvu0P3zhtn38hpBYjJChCTFSAmK0BMVoCYrAAxWQFisgLEZAWIWdlmdjaaUzvaKd/2//02TitATFaAmKwAMVkBYrICxGQFiMkKEJMVICYrQGxsZfvGJeW522rvfN01n0bljX8La04rQExWgJisADFZAWKyAsRkBYjJChCTFSAmK0Ds4Mr289aQa+ut5M7trR57/2PXvu1vwWkFiMkKEJMVICYrQExWgJisADFZAWKyAsRkBYj9PM8z/R4+xLkl5Z37zp3F6ue9Lr9yWgFisgLEZAWIyQoQkxUgJitATFaAmKwAMVkBYlt32d55b+jazgpz512dW8qun3lqofvG1z1n6pbcqb9BpxUgJitATFaAmKwAMVkBYrICxGQFiMkKEJMVIDZ2l+2du8Nzz3zujtU7fd6nMbVYndqj73BaAWKyAsRkBYjJChCTFSAmK0BMVoCYrAAxWQFiB++yXbtz7bpzL+y5T8OC81dTt+TeuQx2ly3wFWQFiMkKEJMVICYrQExWgJisADFZAWKyAsQO3mV7bpV4bjv4ebfVfttn5XVv4LQCxGQFiMkKEJMVICYrQExWgJisADFZAWKyAsS27rJde+O+84270jeauo/2zt/GOVPvymkFiMkKEJMVICYrQExWgJisADFZAWKyAsRkBYgdXNneuSt941by3H73zptQ1869551nfuPv6ty7cloBYrICxGQFiMkKEJMVICYrQExWgJisADFZAWJbK9upW0XX7lz33mlq/fnGG4Xv3ODeeb+y0woQkxUgJitATFaAmKwAMVkBYrICxGQFiMkKEPt5nuc/P3hqZfvG3eHU667duaO983Xv/G3ceRux0woQkxUgJitATFaAmKwAMVkBYrICxGQFiMkKEBtb2a5NrTB33LnfXbvzNuKd193xxlty16YWuk4rQExWgJisADFZAWKyAsRkBYjJChCTFSAmK0Bsa2W7Y+rO0am7P++8YXfHnd/RnbvhOz+rc5xWgJisADFZAWKyAsRkBYjJChCTFSAmK0BMVoDY2Mp27c5bRe/cO37bfvfO24inHrs29Xt2WgFisgLEZAWIyQoQkxUgJitATFaAmKwAMVkBYpfeZbtj6t7QNy5W1+7clX7et/DGHe2a0woQkxUgJitATFaAmKwAMVkBYrICxGQFiMkKEDu4sj23HdwxtcKcWrvuPPO3mfokp25BPsdpBYjJChCTFSAmK0BMVoCYrAAxWQFisgLEZAWIjd1lu/bGm1CntpJTN6Hu+LZvcGonPXXTrdMKEJMVICYrQExWgJisADFZAWKyAsRkBYjJChD7befBd64w184tC8+5czl656p4ajf8xmc+x2kFiMkKEJMVICYrQExWgJisADFZAWKyAsRkBYhtrWzP3cF55xZ26tbYqc3xjqkF9o437lmnVsVrTitATFaAmKwAMVkBYrICxGQFiMkKEJMVICYrQGzsLts7l6Prd3XuPU8tR++86faNdyTvmHrdc9++0woQkxUgJitATFaAmKwAMVkBYrICxGQFiMkKEPt5nmf6PbzG1I2za3fuWT/PG5fQU8tvpxUgJitATFaAmKwAMVkBYrICxGQFiMkKEJMVIDZ2l+2dzi0azz3znfvdtTfe+7vz2G9bQjutADFZAWKyAsRkBYjJChCTFSAmK0BMVoCYrACxrZXt2rk15I5z+843rl13nNuV7nzO3/Yd3bnfdVoBYrICxGQFiMkKEJMVICYrQExWgJisADFZAWIHV7Zrn7d3vNOdt8a+0dSdsm/8FpxWgJisADFZAWKyAsRkBYjJChCTFSAmK0BMVoDY2MqWX53bwp7baJ67rfbcY8+ZukP33I3CO5xWgJisADFZAWKyAsRkBYjJChCTFSAmK0BMVoCYle2/cOf9uzs7y6mN5tR7vvPTWDv3WZ3jtALEZAWIyQoQkxUgJitATFaAmKwAMVkBYrICxMZWtnfeSLq2s2g8d1vtjjt3tGvndqXnts5T3GULfAhZAWKyAsRkBYjJChCTFSAmK0BMVoCYrACxn+d5/vOD71wW7phacN55p+za1Cb1zk/jnHO/nHO/OqcVICYrQExWgJisADFZAWKyAsRkBYjJChCTFSC2tbIF+CenFSAmK0BMVoCYrAAxWQFisgLEZAWIyQoQkxUgJitATFaAmKwAMVkBYrICxGQFiMkKEJMVICYrQExWgNjf+vPv/nXuIuUAAAAASUVORK5CYII=" alt="QR biograf&iacute;a Cervantes">
+        <div class="txt">Mira este v&iacute;deo biogr&aacute;fico antes de responder.<br><span class="fr">(Regarde cette vidéo biographique avant de répondre.)</span><br>
+        <a href="https://www.youtube.com/watch?v=HAxjVeqKH_8" target="_blank">youtube.com/watch?v=HAxjVeqKH_8</a></div>
+      </div>
+      <div class="info-facts">
+        <div class="fact"><b>1547</b>Nace en Alcal&aacute; de Henares</div>
+        <div class="fact"><b>1571</b>Lucha en la batalla naval de Lepanto</div>
+        <div class="fact"><b>1575&ndash;1580</b>Preso en Argel</div>
+        <div class="fact"><b>1605</b>Publica &laquo;Don Quijote&raquo;</div>
+        <div class="fact"><b>1616</b>Muere en Madrid</div>
+      </div>
+      <h3 style="color:var(--maroon); font-size:13.5px; margin:10px 0 2px 0;">&iquest;Verdadero o falso?</h3>
+      <div id="mcq-bio"></div>
+    </div>
+
+    <div class="card">
+      <h2 class="title" style="font-size:16px;">&#127925; El personaje: &laquo;Soy Don Quijote de la Mancha&raquo; <span class="fr">(le personnage – chanson)</span></h2>
+      <div class="qr-box">
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAXIAAAFyCAIAAABnRsZeAAAHvElEQVR4nO3c261byRVFUctQFh2a43NoHQedwYGMmrtrH94xfgXy8qWJ+lioX5/P518AnX/ffgHAt5EVICYrQExWgJisADFZAWKyAsRkBYjJChCTFSAmK0BMVoCYrAAxWQFisgLEZAWIyQoQkxUgJitA7PfJg//z11/V61jiv3///fCvz+/3+bHPTj7JW6/52a3fxhu/wZ1OPg2nFSAmK0BMVoCYrAAxWQFisgLEZAWIyQoQkxUgdrSyfTa34Dxxaw15a+06xzv6czs/jbn/C04rQExWgJisADFZAWKyAsRkBYjJChCTFSAmK0BscGX7bG7hN7doPLkn9dnOm1BPVqc7N7g/be166/06rQAxWQFisgLEZAWIyQoQkxUgJitATFaAmKwAsWsr2ze6tYa8tVh94yZ1bgm989PYyWkFiMkKEJMVICYrQExWgJisADFZAWKyAsRkBYhZ2f4fdm5h5/7uzvton+28FfincVoBYrICxGQFiMkKEJMVICYrQExWgJisADFZAWLXVrY7N5q3zN2xOrc63bln3bmEfvZ9/xecVoCYrAAxWQFisgLEZAWIyQoQkxUgJitATFaA2ODKducK88TJRnPusSd2vuadn/PcrcDfx2kFiMkKEJMVICYrQExWgJisADFZAWKyAsRkBYj9+nw+t1/Da+zcSn7f+nPuHb3xpts3cloBYrICxGQFiMkKEJMVICYrQExWgJisADFZAWJHd9neuut0582vJ37aLao7d7Qnbn2Dt/6XPXNaAWKyAsRkBYjJChCTFSAmK0BMVoCYrAAxWQFiRyvbW25tB9+473zmNf/5M5/4vg3uM6cVICYrQExWgJisADFZAWKyAsRkBYjJChCTFSA2uLLdeQfnzhXm9z3z3Ld/63bene/o1o72mdMKEJMVICYrQExWgJisADFZAWKyAsRkBYjJChC7dpftrWXhzvtKd97Oe/LYuc95zq13tPO3ccJpBYjJChCTFSAmK0BMVoCYrAAxWQFisgLEZAWIDa5s7Vn//O/Ovea520xvrXtvmdvgzn0at37tTitATFaAmKwAMVkBYrICxGQFiMkKEJMVICYrQOzX5/MZeurv28Le+rs7P6s5t/asO5/5xK1X5bQCxGQFiMkKEJMVICYrQExWgJisADFZAWKyAsQG77J9dus20503ku5cu57YeVvtG9euJ4+99X6dVoCYrAAxWQFisgLEZAWIyQoQkxUgJitATFaA2Cvvsp177BvN7Vl3flZza+Zbn+T3/dqdVoCYrAAxWQFisgLEZAWIyQoQkxUgJitATFaA2OBdtnOLxp373We39o47l7LPbt2De2uD+32cVoCYrAAxWQFisgLEZAWIyQoQkxUgJitATFaA2NFdtjtvUf2+m0F3rk7faO773bnevrULd1oBYrICxGQFiMkKEJMVICYrQExWgJisADFZAWJHK9tntza4O7e/z26tP5993+p0zht/7XOfldMKEJMVICYrQExWgJisADFZAWKyAsRkBYjJChD7ffLgnXdwzv3dna/q5JmfvfEO3Vvr3mc777Kd23Y7rQAxWQFisgLEZAWIyQoQkxUgJitATFaAmKwAscG7bOfcWn8+27mknHvmW1vYuWfeeaPwiVvv12kFiMkKEJMVICYrQExWgJisADFZAWKyAsRkBYgdrWznVnq3/LSbUOe8cZN6Yu7X/sYVtdMKEJMVICYrQExWgJisADFZAWKyAsRkBYjJChC7dpftzrtdb9l5x+rOpezOm31PnvnZreW3lS2wiKwAMVkBYrICxGQFiMkKEJMVICYrQExWgNjvuaee21nuvEP35P2+cRl8YudOem7PeusXe+tzdloBYrICxGQFiMkKEJMVICYrQExWgJisADFZAWJHK9tbt2yeeOOe9Y0rzFu38z6bW8qemNtn31qcO60AMVkBYrICxGQFiMkKEJMVICYrQExWgJisALGjle3Jhu/W/u/k787tLOc2qTtf84lbO+m5X+z3rZmdVoCYrAAxWQFisgLEZAWIyQoQkxUgJitATFaA2OBdtm90a/u7827XZzu//Z3b3zfu0U84rQAxWQFisgLEZAWIyQoQkxUgJitATFaAmKwAsaOV7bOd68Cdd7vObUN33nV64qe9qjd++04rQExWgJisADFZAWKyAsRkBYjJChCTFSAmK0BscGX77Nbade6Zb93tunPd+2znJvXWMz87+Y5uvWanFSAmK0BMVoCYrAAxWQFisgLEZAWIyQoQkxUgdm1l+0Zzt4qePHbn+vPZT7tDd27rvPO34bQCxGQFiMkKEJMVICYrQExWgJisADFZAWKyAsSsbP8hc7vSW3ednryjndvQZzvXzDv3yk4rQExWgJisADFZAWKyAsRkBYjJChCTFSAmK0Ds2sp2532lz25tQ+eeee5+1p2r4p3m9spzf/eZ0woQkxUgJitATFaAmKwAMVkBYrICxGQFiMkKEBtc2b5x7/hs572hc6vTW7vhudtb5x77bOcyeO4X67QCxGQFiMkKEJMVICYrQExWgJisADFZAWKyAsR+fT6f268B+CpOK0BMVoCYrAAxWQFisgLEZAWIyQoQkxUgJitATFaAmKwAMVkBYrICxGQFiMkKEJMVICYrQExWgJisALH/Aeql4GoFee50AAAAAElFTkSuQmCC" alt="QR canci&oacute;n">
+        <div class="txt">Canci&oacute;n de Ritmos &Ntilde;. Antes de escuchar, marca lo que crees que vas a o&iacute;r.<br><span class="fr">(Avant d'écouter, coche ce que tu penses entendre.)</span><br>
+        <a href="https://www.youtube.com/watch?v=me4TL_-IVf8" target="_blank">youtube.com/watch?v=me4TL_-IVf8</a></div>
+      </div>
+      <div class="chk-list" id="chk-song"></div>
+      <div class="q-block">
+        <div class="q-txt">Despu&eacute;s de escuchar, construye una frase sobre Don Quijote: <span class="fr">(après écoute, construis une phrase sur Don Quichotte)</span></div>
+        <div class="fill-row">
+          <b>Don Quijote</b>
+          <select id="song-verb" onchange="buildSongSentence()"></select>
+          <select id="song-inf" onchange="buildSongSentence()"></select>
+        </div>
+        <p id="song-sentence" style="font-style:italic; color:var(--maroon); min-height:18px;"></p>
+      </div>
+      <div class="callout"><b>&iquest;Sab&iacute;as que...?</b> La expresi&oacute;n &laquo;<i>luchar contra molinos de viento</i>&raquo; se usa hoy en espa&ntilde;ol y en franc&eacute;s (&laquo;se battre contre des moulins à vent&raquo;) para hablar de alguien que combate un peligro imaginario.</div>
+    </div>
+  </section>
+
+  <!-- ============ PISTA 2 : CORTOMETRAJE ============ -->
+  <section class="screen" id="screen-p2">
+    <div class="card badge-card">
+      <h2 class="title"><span class="n">2</span>Pista 2 &ndash; El nuevo cortometraje <span class="fr">(le nouveau court métrage)</span></h2>
+      <div class="qr-box">
+        <img src="data:image/png;base64,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" alt="QR cortometraje">
+        <div class="txt"><b>&laquo;Don Quijote de la Mancha&raquo;</b> (Shackleton Kids). Cuenta toda la historia.<br><span class="fr">(Il raconte toute l'histoire.)</span><br>
+        <a href="https://www.youtube.com/watch?v=MEMoKh0RPJ4" target="_blank">youtube.com/watch?v=MEMoKh0RPJ4</a></div>
+      </div>
+
+      <h3 style="color:var(--maroon); font-size:14.5px; margin-bottom:2px;">Comprensi&oacute;n global</h3>
+      <div id="mcq-p2-global"></div>
+
+      <h3 style="color:var(--maroon); font-size:14.5px; margin:14px 0 2px 0;">Comprensi&oacute;n fina</h3>
+      <div id="mcq-p2-fine"></div>
+    </div>
+
+    <div class="card">
+      <h2 class="title" style="font-size:16px;">&#128214; Vocabulario <span class="fr">(vocabulaire)</span></h2>
+      <table class="match" id="vocab-table"></table>
+    </div>
+
+    <div class="card">
+      <h2 class="title" style="font-size:16px;">&#128337; Ordena la historia <span class="fr">(remets l'histoire dans l'ordre)</span></h2>
+      <div id="order-list"></div>
+      <button class="btn ghost" onclick="checkOrder()">Comprobar el orden</button>
+      <div id="order-feedback" class="fb" style="margin-top:6px;"></div>
+    </div>
+
+    <div class="card">
+      <h2 class="title" style="font-size:16px;">&#128269; Comparaci&oacute;n <span class="fr">(comparaison)</span></h2>
+      <p class="lead" style="font-size:13px;">Para cada frase, indica si es v&aacute;lida para LOS DOS v&iacute;deos, SOLO el an&uacute;ncio o SOLO el cortometraje. <span class="fr">(indique si chaque phrase concerne les deux vidéos, seulement la pub, ou seulement le court métrage)</span></p>
+      <table class="match" id="cmp-table"></table>
+    </div>
+  </section>
+
+  <!-- ============ BONUS ============ -->
+  <section class="screen" id="screen-bonus">
+    <div class="card badge-card">
+      <h2 class="title"><span class="n">&#127942;</span>Pista bonus &ndash; El corto de los molinos <span class="fr">(bonus – le court des moulins)</span></h2>
+      <div class="qr-box">
+        <img src="data:image/png;base64,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" alt="QR bonus">
+        <div class="txt">&laquo;Don Quijote en la jam&aacute;s imaginada aventura de los molinos&raquo;<br><span class="fr">(pour comparer avec la pub)</span><br>
+        <a href="https://www.youtube.com/watch?v=RFuoyeL3Yz0" target="_blank">youtube.com/watch?v=RFuoyeL3Yz0</a></div>
+      </div>
+      <h3 style="color:var(--maroon); font-size:14.5px;">Marca lo que aparece en LOS DOS v&iacute;deos (el an&uacute;ncio Y este corto) <span class="fr">(coche ce qui apparaît dans les deux vidéos)</span></h3>
+      <div class="chk-list" id="chk-bonus"></div>
+      <div class="q-block">
+        <div class="q-txt">&iquest;Qui&eacute;n ayuda a Don Quijote a ver la realidad en cada v&iacute;deo? <span class="fr">(qui l'aide à voir la réalité ?)</span></div>
+        <table class="match" id="bfx-table"></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ JUEGOS EXTRA ============ -->
+  <section class="screen" id="screen-games">
+    <div class="card badge-card">
+      <h2 class="title"><span class="n">&#127918;</span>Juegos extra <span class="fr">(jeux bonus)</span></h2>
+      <p class="lead">Dos retos para los m&aacute;s r&aacute;pidos. <span class="fr">(deux défis pour les plus rapides.)</span></p>
+    </div>
+
+    <div class="card">
+      <h2 class="title" style="font-size:16px;">&#128274; Mensaje secreto <span class="fr">(message codé)</span></h2>
+      <p class="lead" style="font-size:12.5px;">Cada n&uacute;mero corresponde a una letra (A=1, B=2...Z=26). Descifra las palabras. <span class="fr">(chaque nombre correspond à une lettre. Déchiffre les mots.)</span></p>
+      <div class="cipher-legend" id="cipher-legend"></div>
+      <div id="cipher-items"></div>
+    </div>
+
+    <div class="card">
+      <h2 class="title" style="font-size:16px;">&#129513; Crucigrama <span class="fr">(mots croisés)</span></h2>
+      <div class="cx-wrap">
+        <table class="cross" id="cross-grid"></table>
+      </div>
+      <ol class="cross-clues" id="cross-clues"></ol>
+      <button class="btn ghost" onclick="checkCrossword()">Comprobar el crucigrama</button>
+      <div id="cross-feedback" class="fb" style="margin-top:6px;"></div>
+    </div>
+  </section>
+
+  <!-- ============ FINAL ============ -->
+  <section class="screen" id="screen-final">
+    <div class="card badge-card">
+      <h2 class="title"><span class="n">&#9733;</span>Misi&oacute;n cumplida <span class="fr">(mission accomplie)</span></h2>
+      <div class="score-badge">
+        <div class="num" id="score-num">0/0</div>
+        <div class="lab">respuestas correctas en las preguntas cerradas</div>
+      </div>
+      <p class="lead">&iexcl;Enhorabuena, <span id="final-name">investigador/a</span>! Ahora ya conoces a <b>Miguel de Cervantes</b>, a <b>Don Quijote</b> y a <b>Sancho Panza</b>, y sabes por qu&eacute; decimos &laquo;luchar contra molinos de viento&raquo;.</p>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn" onclick="window.print()">&#128424; Imprimir / guardar en PDF</button>
+        <button class="btn ghost" onclick="resetApp()">&#8635; Reiniciar</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<button class="gear" onclick="openTeacher()" title="Espacio del profesor">&#9881;</button>
+
+<div class="navbar">
+  <button class="btn ghost" id="btn-prev" onclick="prevScreen()">&larr; Anterior</button>
+  <div class="step-label" id="step-label"></div>
+  <button class="btn" id="btn-next" onclick="nextScreen()">Siguiente &rarr;</button>
+</div>
+
+<!-- Teacher modal -->
+<div class="modal-bg" id="teacher-modal">
+  <div class="modal">
+    <button class="close-x" onclick="closeTeacher()">&times;</button>
+    <h3>Espacio del profesor</h3>
+    <div id="teacher-login">
+      <p style="font-size:13px;">Introduce la contrase&ntilde;a:</p>
+      <input type="text" id="teacher-pass" placeholder="contrase&ntilde;a">
+      <button class="btn" style="margin-top:8px;" onclick="checkTeacherPass()">Entrar</button>
+      <p id="teacher-error" style="color:var(--ko); font-size:12px;"></p>
+    </div>
+    <div id="teacher-panel" style="display:none;">
+      <p style="font-size:12.5px;">Clave de correcci&oacute;n r&aacute;pida y exportaci&oacute;n de las respuestas guardadas en este navegador.</p>
+      <div id="answer-key" style="font-size:11.5px; max-height:220px; overflow:auto; background:var(--cream); border:1px solid #e6d6b3; border-radius:8px; padding:8px 10px; margin-bottom:10px;"></div>
+      <button class="btn gold" style="width:100%; margin-bottom:8px;" onclick="exportCSV()">&#11015; Exportar respuestas (CSV)</button>
+      <button class="btn ghost" style="width:100%;" onclick="resetApp()">&#8635; Borrar progreso guardado</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   DATA
+   ============================================================ */
+const SCREENS = ['home','p1','reveal','p2','bonus','games','final'];
+const STEP_LABELS = {home:'Inicio', p1:'Pista 1: el anúncio', reveal:'¡Lo descubrimos!', p2:'Pista 2: el cortometraje', bonus:'Pista bonus', games:'Juegos extra', final:'Misión cumplida'};
+
+const MCQ_GLOBAL = [
+  {id:'g1', q:'¿Dónde ocurre la escena del anúncio?', fr:'Où se passe la scène ?', opts:['En una ciudad moderna','En el campo, en La Mancha','En el mar'], c:1},
+  {id:'g2', q:'¿Quién aparece en el anúncio?', fr:'Qui apparaît dans la pub ?', opts:['Don Quijote solo','Don Quijote y Sancho Panza','Tres caballeros'], c:1},
+  {id:'g3', q:'¿Qué producto vende la marca General Óptica?', fr:'Quel produit est vendu ?', opts:['Coches','Gafas y lentillas','Libros antiguos'], c:1},
+];
+const MCQ_FINE = [
+  {id:'f1', q:'¿Qué cree ver Don Quijote al principio?', fr:'Que croit-il voir au début ?', opts:['Gigantes','Caballos','Soldados'], c:0},
+  {id:'f2', q:'¿Qué son en realidad esas formas?', fr:'Que sont-elles réellement ?', opts:['Castillos','Molinos de viento','Árboles'], c:1},
+  {id:'f3', q:'¿Qué objeto no existía en el siglo XVII?', fr:'Quel objet n\'existait pas au 17e siècle ?', opts:['La lanza','El estuche moderno de gafas','El caballo'], c:1},
+];
+const CHK_EFICACIA = [
+  {t:'Usa el humor', fr:'Elle utilise l\'humour'},
+  {t:'Reinterpreta una escena muy famosa', fr:'Elle réinterprète une scène très célèbre'},
+  {t:'Sorprende con un guiño inesperado', fr:'Elle surprend avec un clin d\'œil inattendu'},
+  {t:'Juega con un doble sentido («ver bien»)', fr:'Elle joue sur un double sens'},
+  {t:'Mezcla una época antigua con objetos modernos', fr:'Elle mélange une époque ancienne et des objets modernes'},
+];
+const MCQ_BIO = [
+  {id:'b1', q:'Cervantes nació en Madrid.', fr:'Cervantès est né à Madrid.', opts:['Verdadero','Falso'], c:1},
+  {id:'b2', q:'Cervantes participó en una batalla naval (Lepanto).', fr:'Cervantès a participé à une bataille navale.', opts:['Verdadero','Falso'], c:0},
+  {id:'b3', q:'Cervantes murió en el siglo XVI.', fr:'Cervantès est mort au 16e siècle.', opts:['Verdadero','Falso'], c:1},
+];
+const CHK_SONG = [
+  {t:'Quiero + infinitivo', fr:'Je veux + infinitif'},
+  {t:'Deseo + infinitivo', fr:'Je désire + infinitif'},
+  {t:'Voy a + infinitivo', fr:'Je vais + infinitif'},
+  {t:'Sueño con + infinitivo', fr:'Je rêve de + infinitif'},
+  {t:'Necesito + infinitivo', fr:'J\'ai besoin de + infinitif'},
+];
+const SONG_VERBS = ['Quiero','Deseo','Voy a','Sueño con','Necesito'];
+const SONG_INF = ['ser un caballero andante','vivir grandes aventuras','defender la justicia','luchar por mis ideales','ayudar a los más débiles'];
+const MCQ_P2_GLOBAL = [
+  {id:'p2g1', q:'¿Por qué Don Quijote decide ser caballero andante?', fr:'Pourquoi devient-il chevalier ?', opts:['Leyó demasiados libros de caballerías','Se lo pidió el rey','Quería ganar dinero'], c:0},
+  {id:'p2g2', q:'¿Quién le acompaña en sus aventuras?', fr:'Qui l\'accompagne ?', opts:['Su sobrina','Sancho Panza','Un mago'], c:1},
+  {id:'p2g3', q:'¿Cómo se llama su caballo?', fr:'Comment s\'appelle son cheval ?', opts:['Rocinante','Babieca','Platero'], c:0},
+  {id:'p2g4', q:'¿A quién dedica Don Quijote sus hazañas?', fr:'À qui dédie-t-il ses exploits ?', opts:['A Dulcinea del Toboso','A la reina','A su madre'], c:0},
+];
+const MCQ_P2_FINE = [
+  {id:'p2f1', q:'¿De qué región de España es Don Quijote?', fr:'De quelle région vient-il ?', opts:['La Mancha','Andalucía','Cataluña'], c:0},
+  {id:'p2f2', q:'¿Qué confunde con gigantes?', fr:'Que confond-il avec des géants ?', opts:['Vacas','Molinos de viento','Rocas'], c:1},
+  {id:'p2f3', q:'¿En qué monta Sancho Panza?', fr:'Sur quoi monte Sancho ?', opts:['Un caballo','Un asno','Va a pie'], c:1},
+];
+const VOCAB = [
+  {left:'caballero andante', opts:['chevalier errant','cheval fou','chevalier riche'], c:0},
+  {left:'escudero', opts:['bouclier','écuyer (compagnon)','chevalier'], c:1},
+  {left:'libros de caballerías', opts:['livres de cuisine','romans de chevalerie','livres d\'histoire'], c:1},
+  {left:'la locura', opts:['la sagesse','la folie','la fatigue'], c:1},
+  {left:'una hazaña', opts:['un exploit','une erreur','une chanson'], c:0},
+  {left:'un asno', opts:['un âne','un cheval','un château'], c:0},
+];
+const ORDER_ITEMS = [
+  {t:'Alonso Quijano lee demasiados libros de caballerías y pierde la razón.', fr:'Alonso Quijano lit trop de romans de chevalerie et perd la raison.', pos:1},
+  {t:'Se nombra a sí mismo «Don Quijote de la Mancha» y sale a buscar aventuras.', fr:'Il se nomme lui-même « Don Quichotte de la Manche » et part à l\'aventure.', pos:2},
+  {t:'Convence a Sancho Panza para ser su escudero.', fr:'Il convainc Sancho Panza de devenir son écuyer.', pos:3},
+  {t:'Confunde molinos de viento con gigantes y los ataca.', fr:'Il confond des moulins à vent avec des géants et les attaque.', pos:4},
+  {t:'Vuelve a casa, recupera la razón y muere en paz.', fr:'Il rentre chez lui, retrouve la raison et meurt en paix.', pos:5},
+];
+const CHK_BONUS = [
+  {t:'Los molinos de viento', fr:'Les moulins à vent'},
+  {t:'Gigantes imaginarios', fr:'Des géants imaginaires'},
+  {t:'Sancho Panza intentando avisar', fr:'Sancho Panza qui essaie de prévenir'},
+  {t:'Un final con humor', fr:'Une fin pleine d\'humour'},
+];
+
+const EFICACIA_MATCH = [
+  {left:'El anúncio sorprende porque...', fr:'La pub surprend parce que...', opts:['mezcla una época antigua con un objeto moderno.','solo habla de gafas de sol.','no tiene personajes.'], c:0},
+  {left:'El humor funciona porque...', fr:'L\'humour fonctionne parce que...', opts:['Don Quijote confunde algo real con un monstruo imaginario.','el anúncio es muy largo.','no hay música.'], c:0},
+  {left:'El eslogan es inteligente porque...', fr:'Le slogan est intelligent parce que...', opts:['tiene un doble sentido: ver bien físicamente y ver bien la realidad.','rima con el nombre de la marca.','es muy difícil de entender.'], c:0},
+];
+const COMPARE_ITEMS = [
+  {left:'Don Quijote confunde algo con gigantes.', fr:'Don Quichotte confond quelque chose avec des géants.', opts:['Los dos','Solo el anúncio','Solo el cortometraje'], c:0},
+  {left:'Sancho Panza intenta explicarle la verdad.', fr:'Sancho essaie de lui expliquer la vérité.', opts:['Los dos','Solo el anúncio','Solo el cortometraje'], c:0},
+  {left:'Aparecen unas gafas modernas de una marca de óptica.', fr:'Des lunettes modernes d\'une marque d\'optique apparaissent.', opts:['Los dos','Solo el anúncio','Solo el cortometraje'], c:1},
+  {left:'Se cuenta toda la vida de Don Quijote, desde que lee libros de caballerías.', fr:'On raconte toute la vie de Don Quichotte.', opts:['Los dos','Solo el anúncio','Solo el cortometraje'], c:2},
+  {left:'Dura menos de un minuto.', fr:'Ça dure moins d\'une minute.', opts:['Los dos','Solo el anúncio','Solo el cortometraje'], c:1},
+  {left:'Vemos o mencionamos a Dulcinea del Toboso.', fr:'On voit ou mentionne Dulcinée du Toboso.', opts:['Los dos','Solo el anúncio','Solo el cortometraje'], c:2},
+];
+const BONUS_FILL = [
+  {left:'En el anúncio, ¿quién o qué le ayuda a ver la realidad?', fr:'Dans la pub, qui/quoi l\'aide à voir la réalité ?', opts:['Unas gafas modernas','Un amigo invisible','Nadie'], c:0},
+  {left:'En este cortometraje, ¿quién le ayuda a ver la realidad?', fr:'Dans ce court métrage, qui l\'aide à voir la réalité ?', opts:['Sancho Panza','Nadie','Un gigante'], c:0},
+];
+const MATCH_REGISTRY = { voc:VOCAB, efi:EFICACIA_MATCH, cmp:COMPARE_ITEMS, bfx:BONUS_FILL };
+
+const CROSS_WORDS = [
+  {num:1, dir:'v', row:0, col:5, word:'SANCHO', clue:'Compañero fiel de Don Quijote, monta en un asno.', fr:'Le fidèle compagnon de Don Quichotte, monté sur un âne.'},
+  {num:2, dir:'h', row:1, col:4, word:'LANZA', clue:'Arma larga que Don Quijote usa contra los molinos.', fr:'Arme longue utilisée contre les moulins.'},
+  {num:3, dir:'v', row:1, col:8, word:'ASNO', clue:'Animal en el que monta Sancho Panza.', fr:'Animal monté par Sancho Panza.'},
+  {num:4, dir:'h', row:5, col:1, word:'QUIJOTE', clue:'Nombre del caballero protagonista de la novela.', fr:'Nom du chevalier protagoniste du roman.'},
+];
+const CIPHER_ITEMS = [
+  {code:'17-21-9-10-15-20-5', answer:'QUIJOTE', hint:'El caballero protagonista.', fr:'Le chevalier protagoniste.'},
+  {code:'3-5-18-22-1-14-20-5-19', answer:'CERVANTES', hint:'El autor de la novela.', fr:'L\'auteur du roman.'},
+  {code:'18-5-1-12-9-4-1-4', answer:'REALIDAD', hint:'Lo contrario de «imaginación».', fr:'Le contraire d\'« imagination ».'},
+];
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const STORE_KEY = 'ludikele_quijote_v1';
+let state = loadState();
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return {nombre:'', screen:'home', answers:{}, checks:{}, texts:{}, order:{}, cross:{}, score:{correct:0,total:0}};
+}
+function saveState(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){}
+}
+
+/* ============================================================
+   RENDER MCQ / CHECKLISTS
+   ============================================================ */
+function renderMCQ(containerId, list){
+  const el = document.getElementById(containerId);
+  el.innerHTML = list.map(item => {
+    const saved = state.answers[item.id];
+    const optsHtml = item.opts.map((o,i) => {
+      let cls = 'opt-btn';
+      let dis = '';
+      if(saved !== undefined){
+        dis = 'disabled';
+        if(i === item.c) cls += ' correct';
+        else if(i === saved) cls += ' wrong';
+      }
+      return `<button class="${cls}" ${dis} onclick="answerMCQ('${item.id}',${i},${item.c},this)">${o}</button>`;
+    }).join('');
+    const fbHtml = saved !== undefined ? `<div class="fb ${saved===item.c?'ok':'ko'}">${saved===item.c?'¡Correcto!':'No exactamente — mira la respuesta en verde.'}</div>` : '';
+    return `<div class="q-block"><div class="q-txt">${item.q}</div>${item.fr?`<div class="fr">${item.fr}</div>`:''}<div class="opts">${optsHtml}</div>${fbHtml}</div>`;
+  }).join('');
+}
+function answerMCQ(id, chosen, correct, btnEl){
+  if(state.answers[id] !== undefined) return;
+  state.answers[id] = chosen;
+  saveState();
+  const container = btnEl.closest('.q-block');
+  container.querySelectorAll('.opt-btn').forEach((b,i) => {
+    b.setAttribute('disabled','');
+    if(i === correct) b.classList.add('correct');
+    else if(i === chosen) b.classList.add('wrong');
+  });
+  const fb = document.createElement('div');
+  fb.className = 'fb ' + (chosen===correct?'ok':'ko');
+  fb.textContent = chosen===correct ? '¡Correcto!' : 'No exactamente — mira la respuesta en verde.';
+  container.appendChild(fb);
+  updateScore();
+}
+function updateScore(){
+  const allMcq = [...MCQ_GLOBAL, ...MCQ_FINE, ...MCQ_BIO, ...MCQ_P2_GLOBAL, ...MCQ_P2_FINE];
+  let correct=0, total=allMcq.length;
+  allMcq.forEach(it => { if(state.answers[it.id] === it.c) correct++; });
+
+  // generic select-match registries (vocab, eficacia, comparación, bonus)
+  let matchCorrect=0, matchTotal=0;
+  Object.keys(MATCH_REGISTRY).forEach(prefix => {
+    const items = MATCH_REGISTRY[prefix];
+    matchTotal += items.length;
+    items.forEach((it,i) => { if(state.answers[prefix+i] === it.c) matchCorrect++; });
+  });
+
+  const orderOk = isOrderCorrect() ? 1 : 0;
+
+  const cross = crossScore();
+  const cipherRes = cipherScore();
+
+  const totalAll = total + matchTotal + 1 + cross.total + cipherRes.total;
+  const correctAll = correct + matchCorrect + orderOk + cross.correct + cipherRes.correct;
+  const el = document.getElementById('score-num');
+  if(el) el.textContent = correctAll + '/' + totalAll;
+  state.score = {correct:correctAll, total:totalAll};
+  saveState();
+}
+
+function renderChk(containerId, list, key){
+  const el = document.getElementById(containerId);
+  const saved = state.checks[key] || [];
+  el.innerHTML = list.map((item,i) => {
+    const label = typeof item === 'string' ? item : item.t;
+    const fr = typeof item === 'string' ? '' : (item.fr ? ` <span class="fr">(${item.fr})</span>` : '');
+    return `<label><input type="checkbox" ${saved.includes(i)?'checked':''} onchange="toggleChk('${key}',${i},this)"> ${label}${fr}</label>`;
+  }).join('');
+}
+function toggleChk(key, i, elInput){
+  if(!state.checks[key]) state.checks[key] = [];
+  const arr = state.checks[key];
+  const idx = arr.indexOf(i);
+  if(elInput.checked && idx===-1) arr.push(i);
+  if(!elInput.checked && idx!==-1) arr.splice(idx,1);
+  saveState();
+}
+function saveText(id){
+  state.texts[id] = document.getElementById(id).value;
+  saveState();
+}
+function checkFill(id, correctVal){
+  const v = document.getElementById(id).value.trim().toLowerCase();
+  const fb = document.getElementById('fb-'+id);
+  state.texts[id] = v;
+  if(v === correctVal){ fb.textContent = '✓'; fb.className='fb ok'; }
+  else { fb.textContent = '→ '+correctVal; fb.className='fb ko'; }
+  saveState();
+}
+
+function renderSelectMatch(containerId, prefix){
+  const items = MATCH_REGISTRY[prefix];
+  const el = document.getElementById(containerId);
+  el.innerHTML = items.map((it,i) => {
+    const saved = state.answers[prefix+i];
+    const optsHtml = `<option value="">--</option>` + it.opts.map((o,oi)=>`<option value="${oi}" ${saved==oi?'selected':''}>${o}</option>`).join('');
+    const fbTxt = saved!==undefined ? (saved==it.c ? '✓' : '→ '+it.opts[it.c]) : '';
+    return `<tr><td><b>${it.left}</b>${it.fr?`<div class="fr">${it.fr}</div>`:''}</td><td><select onchange="answerSelectMatch('${prefix}',${i},this)" ${saved!==undefined?'disabled':''}>${optsHtml}</select></td><td class="fb-cell" id="${prefix}-fb-${i}">${fbTxt}</td></tr>`;
+  }).join('');
+}
+function answerSelectMatch(prefix, i, sel){
+  if(sel.value==='') return;
+  state.answers[prefix+i] = parseInt(sel.value);
+  saveState();
+  sel.disabled = true;
+  const it = MATCH_REGISTRY[prefix][i];
+  document.getElementById(prefix+'-fb-'+i).textContent = (parseInt(sel.value)===it.c) ? '✓' : '→ '+it.opts[it.c];
+  updateScore();
+}
+function buildSongSentence(){
+  const v = document.getElementById('song-verb').value;
+  const inf = document.getElementById('song-inf').value;
+  state.answers['songv'] = v; state.answers['songi'] = inf;
+  saveState();
+  const p = document.getElementById('song-sentence');
+  p.textContent = (v || inf) ? `« Don Quijote ${v||'...'} ${inf||'...'} »` : '';
+}
+
+function renderOrder(){
+  const el = document.getElementById('order-list');
+  el.innerHTML = ORDER_ITEMS.map((it,i) => {
+    const saved = state.order[i] || '';
+    let opts = '<option value="">--</option>';
+    for(let n=1;n<=5;n++) opts += `<option value="${n}" ${saved==n?'selected':''}>${n}</option>`;
+    return `<div class="order-row"><select onchange="setOrder(${i},this)">${opts}</select><span>${it.t}${it.fr?`<div class="fr">${it.fr}</div>`:''}</span></div>`;
+  }).join('');
+}
+function setOrder(i, sel){ state.order[i] = sel.value; saveState(); }
+function isOrderCorrect(){
+  return ORDER_ITEMS.every((it,i) => parseInt(state.order[i]) === it.pos);
+}
+function checkOrder(){
+  const fb = document.getElementById('order-feedback');
+  if(isOrderCorrect()){ fb.textContent = '¡Perfecto, el orden es correcto!'; fb.className='fb ok'; }
+  else { fb.textContent = 'Aún no es correcto, revisa el orden e inténtalo de nuevo.'; fb.className='fb ko'; }
+  updateScore();
+}
+
+/* ============================================================
+   CRUCIGRAMA (crossword)
+   ============================================================ */
+const CROSS_ROWS = 6, CROSS_COLS = 9;
+let CROSS_GRID = null;
+function buildCrossGrid(){
+  const grid = Array.from({length:CROSS_ROWS}, () => Array(CROSS_COLS).fill(null));
+  CROSS_WORDS.forEach(w => {
+    for(let k=0;k<w.word.length;k++){
+      const r = w.dir==='v' ? w.row+k : w.row;
+      const c = w.dir==='h' ? w.col+k : w.col;
+      if(!grid[r][c]) grid[r][c] = {letter:w.word[k]};
+    }
+  });
+  CROSS_WORDS.forEach(w => { grid[w.row][w.col].num = w.num; });
+  return grid;
+}
+function renderCrossword(){
+  CROSS_GRID = buildCrossGrid();
+  const table = document.getElementById('cross-grid');
+  let html = '';
+  for(let r=0;r<CROSS_ROWS;r++){
+    html += '<tr>';
+    for(let c=0;c<CROSS_COLS;c++){
+      const cell = CROSS_GRID[r][c];
+      if(!cell){ html += '<td class="cx-block"></td>'; continue; }
+      const saved = state.cross[r+'_'+c] || '';
+      html += `<td class="cx-cell">${cell.num?`<span class="cx-num">${cell.num}</span>`:''}<input maxlength="1" data-r="${r}" data-c="${c}" value="${saved}" oninput="crossInput(this)"></td>`;
+    }
+    html += '</tr>';
+  }
+  table.innerHTML = html;
+
+  const clues = document.getElementById('cross-clues');
+  clues.innerHTML = CROSS_WORDS.map(w => `<li><b>${w.num}${w.dir==='h'?'→':'↓'}.</b> ${w.clue} <span class="fr">(${w.fr})</span></li>`).join('');
+}
+function crossInput(inp){
+  const r = inp.dataset.r, c = inp.dataset.c;
+  const v = inp.value.toUpperCase().slice(0,1);
+  inp.value = v;
+  state.cross[r+'_'+c] = v;
+  inp.classList.remove('ok','ko');
+  saveState();
+}
+function crossScore(){
+  if(!CROSS_GRID) CROSS_GRID = buildCrossGrid();
+  let correct=0, total=0;
+  for(let r=0;r<CROSS_ROWS;r++){
+    for(let c=0;c<CROSS_COLS;c++){
+      const cell = CROSS_GRID[r][c];
+      if(!cell) continue;
+      total++;
+      if((state.cross[r+'_'+c]||'') === cell.letter) correct++;
+    }
+  }
+  return {correct,total};
+}
+function checkCrossword(){
+  const table = document.getElementById('cross-grid');
+  table.querySelectorAll('input').forEach(inp => {
+    const r = inp.dataset.r, c = inp.dataset.c;
+    const cell = CROSS_GRID[r][c];
+    inp.classList.remove('ok','ko');
+    inp.classList.add(inp.value === cell.letter ? 'ok' : 'ko');
+  });
+  const s = crossScore();
+  const fb = document.getElementById('cross-feedback');
+  fb.textContent = s.correct+'/'+s.total+' letras correctas.';
+  fb.className = 'fb ' + (s.correct===s.total ? 'ok' : 'ko');
+  updateScore();
+}
+
+/* ============================================================
+   MENSAJE SECRETO (cipher)
+   ============================================================ */
+function renderCipherLegend(){
+  const el = document.getElementById('cipher-legend');
+  let html = '';
+  for(let i=0;i<26;i++){
+    const letter = String.fromCharCode(65+i);
+    html += `<div><b>${letter}</b>${i+1}</div>`;
+  }
+  el.innerHTML = html;
+}
+function renderCipherItems(){
+  const el = document.getElementById('cipher-items');
+  el.innerHTML = CIPHER_ITEMS.map((it,i) => {
+    const saved = state.texts['cipher'+i] || '';
+    return `<div class="cipher-item">
+      <div class="cipher-code">${it.code}</div>
+      <div class="fr" style="margin-bottom:4px;">${it.hint} <i>(${it.fr})</i></div>
+      <div class="fill-row"><input type="text" id="cipher-${i}" class="inline" value="${saved}" placeholder="..." onchange="checkCipher(${i})"> <span id="cipher-fb-${i}" class="fb"></span></div>
+    </div>`;
+  }).join('');
+}
+function checkCipher(i){
+  const inp = document.getElementById('cipher-'+i);
+  const v = inp.value.trim().toUpperCase();
+  state.texts['cipher'+i] = v;
+  saveState();
+  const fb = document.getElementById('cipher-fb-'+i);
+  if(v === CIPHER_ITEMS[i].answer){ fb.textContent = '✓'; fb.className='fb ok'; }
+  else { fb.textContent = '→ '+CIPHER_ITEMS[i].answer; fb.className='fb ko'; }
+  updateScore();
+}
+function cipherScore(){
+  let correct=0;
+  CIPHER_ITEMS.forEach((it,i) => { if((state.texts['cipher'+i]||'').toUpperCase()===it.answer) correct++; });
+  return {correct, total:CIPHER_ITEMS.length};
+}
+
+function checkGuess(){
+  const v = document.getElementById('guess-input').value.trim().toLowerCase();
+  state.texts['guess'] = v;
+  saveState();
+  const fb = document.getElementById('guess-feedback');
+  if(v.includes('quijote') || v.includes('cervantes')){
+    fb.innerHTML = '<span style="color:var(--ok)">¡Exacto! Has reconocido la obra o el autor. Sigue para descubrir más &darr;</span>';
+  } else {
+    fb.innerHTML = '<span style="color:var(--ko)">Buena idea, pero no es eso... &iexcl;Sigue para descubrirlo! &darr;</span>';
+  }
+}
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+function renderStepper(){
+  const el = document.getElementById('stepper');
+  const idx = SCREENS.indexOf(state.screen);
+  el.innerHTML = SCREENS.map((s,i) => `<div class="dot ${i<idx?'done':''} ${i===idx?'now':''}"></div>`).join('');
+}
+function goTo(screen){
+  state.screen = screen;
+  saveState();
+  render();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function nextScreen(){
+  const idx = SCREENS.indexOf(state.screen);
+  if(idx < SCREENS.length-1) goTo(SCREENS[idx+1]);
+}
+function prevScreen(){
+  const idx = SCREENS.indexOf(state.screen);
+  if(idx > 0) goTo(SCREENS[idx-1]);
+}
+function render(){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-'+state.screen).classList.add('active');
+  renderStepper();
+  document.getElementById('step-label').textContent = STEP_LABELS[state.screen];
+  document.getElementById('btn-prev').disabled = (state.screen === 'home');
+  document.getElementById('btn-next').style.visibility = (state.screen === 'final') ? 'hidden' : 'visible';
+  if(state.nombre) document.getElementById('final-name').textContent = state.nombre;
+  updateScore();
+}
+
+/* ============================================================
+   TEACHER SPACE
+   ============================================================ */
+const TEACHER_PASS = 'profe2026';
+function openTeacher(){ document.getElementById('teacher-modal').classList.add('show'); }
+function closeTeacher(){
+  document.getElementById('teacher-modal').classList.remove('show');
+  document.getElementById('teacher-login').style.display='block';
+  document.getElementById('teacher-panel').style.display='none';
+  document.getElementById('teacher-pass').value='';
+  document.getElementById('teacher-error').textContent='';
+}
+function checkTeacherPass(){
+  const v = document.getElementById('teacher-pass').value;
+  if(v === TEACHER_PASS){
+    document.getElementById('teacher-login').style.display='none';
+    document.getElementById('teacher-panel').style.display='block';
+    renderAnswerKey();
+  } else {
+    document.getElementById('teacher-error').textContent = 'Contraseña incorrecta.';
+  }
+}
+function renderAnswerKey(){
+  const el = document.getElementById('answer-key');
+  const allMcq = [...MCQ_GLOBAL, ...MCQ_FINE, ...MCQ_BIO, ...MCQ_P2_GLOBAL, ...MCQ_P2_FINE];
+  let html = '<b>Preguntas cerradas:</b><ul style="margin:4px 0 8px 16px; padding:0;">';
+  allMcq.forEach(it => { html += `<li>${it.q} &rarr; <b>${it.opts[it.c]}</b></li>`; });
+  html += '</ul><b>Eslogan:</b> "otra"<br>';
+  Object.keys(MATCH_REGISTRY).forEach(prefix => {
+    html += `<b>${prefix.toUpperCase()}:</b><ul style="margin:4px 0 8px 16px; padding:0;">`;
+    MATCH_REGISTRY[prefix].forEach(it => { html += `<li>${it.left} &rarr; <b>${it.opts[it.c]}</b></li>`; });
+    html += '</ul>';
+  });
+  html += '<b>Orden del cortometraje:</b><ol style="margin:4px 0 8px 16px; padding:0;">';
+  ORDER_ITEMS.forEach(it => { html += `<li>${it.t}</li>`; });
+  html += '</ol>';
+  html += '<b>Crucigrama:</b><ul style="margin:4px 0 8px 16px; padding:0;">';
+  CROSS_WORDS.forEach(w => { html += `<li>${w.num} (${w.dir==='h'?'horizontal':'vertical'}) &rarr; <b>${w.word}</b></li>`; });
+  html += '</ul><b>Mensaje secreto:</b><ul style="margin:4px 0 0 16px; padding:0;">';
+  CIPHER_ITEMS.forEach(it => { html += `<li>${it.code} &rarr; <b>${it.answer}</b></li>`; });
+  html += '</ul>';
+  el.innerHTML = html;
+}
+function exportCSV(){
+  const rows = [['campo','valor']];
+  rows.push(['nombre', state.nombre||'']);
+  rows.push(['puntuacion', state.score.correct+'/'+state.score.total]);
+  Object.keys(state.answers).forEach(k => rows.push(['respuesta_'+k, state.answers[k]]));
+  Object.keys(state.texts).forEach(k => rows.push(['texto_'+k, (state.texts[k]||'').replace(/\n/g,' ')]));
+  Object.keys(state.checks).forEach(k => rows.push(['check_'+k, state.checks[k].join('|')]));
+  Object.keys(state.order).forEach(k => rows.push(['orden_'+k, state.order[k]]));
+  Object.keys(state.cross||{}).forEach(k => rows.push(['crucigrama_'+k, state.cross[k]]));
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'respuestas_' + (state.nombre||'alumno').replace(/\s+/g,'_') + '.csv';
+  a.click();
+}
+function resetApp(){
+  if(!confirm('¿Borrar todo el progreso guardado en este navegador?')) return;
+  localStorage.removeItem(STORE_KEY);
+  state = loadState();
+  document.getElementById('nombre-input').value = '';
+  initAll();
+  goTo('home');
+  closeTeacher();
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+function populateSongSelectors(){
+  const vSel = document.getElementById('song-verb');
+  const iSel = document.getElementById('song-inf');
+  vSel.innerHTML = '<option value="">--verbo--</option>' + SONG_VERBS.map(v=>`<option value="${v}" ${state.answers['songv']===v?'selected':''}>${v}</option>`).join('');
+  iSel.innerHTML = '<option value="">--infinitivo--</option>' + SONG_INF.map(v=>`<option value="${v}" ${state.answers['songi']===v?'selected':''}>${v}</option>`).join('');
+  buildSongSentence();
+}
+function initAll(){
+  document.getElementById('nombre-input').value = state.nombre || '';
+  document.getElementById('nombre-input').oninput = (e) => { state.nombre = e.target.value; saveState(); };
+  renderMCQ('mcq-global', MCQ_GLOBAL);
+  renderMCQ('mcq-fine', MCQ_FINE);
+  renderChk('chk-eficacia', CHK_EFICACIA, 'eficacia');
+  renderSelectMatch('efi-table', 'efi');
+  document.getElementById('fill-slogan').value = state.texts['fill-slogan'] || '';
+  document.getElementById('guess-input').value = state.texts['guess'] || '';
+  if(state.texts['guess']) checkGuess();
+
+  renderMCQ('mcq-bio', MCQ_BIO);
+  renderChk('chk-song', CHK_SONG, 'song');
+  populateSongSelectors();
+
+  renderMCQ('mcq-p2-global', MCQ_P2_GLOBAL);
+  renderMCQ('mcq-p2-fine', MCQ_P2_FINE);
+  renderSelectMatch('vocab-table', 'voc');
+  renderOrder();
+  renderSelectMatch('cmp-table', 'cmp');
+
+  renderChk('chk-bonus', CHK_BONUS, 'bonus');
+  renderSelectMatch('bfx-table', 'bfx');
+
+  renderCipherLegend();
+  renderCipherItems();
+  renderCrossword();
+
+  render();
+}
+window.onload = initAll;
+</script>
+</body>
+</html>
